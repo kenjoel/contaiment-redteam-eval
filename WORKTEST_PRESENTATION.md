@@ -28,9 +28,10 @@ This is Lampson's confinement problem (1973) applied to AI: you can't prevent co
 ### 1. Infrastructure
 ```
 infrastructure/
-├── terraform/           # GCP VM setup with sandbox primitives
 ├── seccomp-profiles/    # Strict syscall filtering
 └── scripts/             # bubblewrap execution scripts
+
+Local VM (Kali Linux) - used for all demonstrations
 ```
 
 ### 2. Agent Harness
@@ -189,6 +190,8 @@ Decoded payload:
 containment-redteam/
 ├── README.md                    # Project overview
 ├── WORKTEST_PRESENTATION.md     # This document
+├── run-agent-sandboxed.sh       # Main execution script
+├── kali-setup.sh                # Kali Linux setup
 ├── agent/
 │   ├── harness.py               # Agent execution framework
 │   └── prompts/
@@ -201,10 +204,8 @@ containment-redteam/
 │   ├── assumption-table.md      # Failure conditions
 │   └── analysis-paper.md        # Research writeup
 ├── infrastructure/
-│   ├── terraform/               # GCP infrastructure
 │   ├── scripts/                 # Execution scripts
 │   └── seccomp-profiles/        # Security profiles
-├── run-agent-sandboxed.sh       # Main execution script
 └── workspace/                   # Demo target repo
 ```
 
