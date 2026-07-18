@@ -46,7 +46,7 @@ except ImportError:
 WORKSPACE = os.environ.get("WORKSPACE", "/workspace")
 TARGET_REPO = os.environ.get("TARGET_REPO", f"{WORKSPACE}/target-repo")
 LOGS_DIR = os.environ.get("LOGS_DIR", "/logs")
-MODEL = os.environ.get("AGENT_MODEL", "gpt-4")
+MODEL = os.environ.get("AGENT_MODEL", "gpt-4o-mini")
 MAX_ITERATIONS = int(os.environ.get("MAX_ITERATIONS", "20"))
 MAX_TOKENS = int(os.environ.get("MAX_TOKENS", "4096"))
 
