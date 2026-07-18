@@ -432,7 +432,16 @@ Work methodically and explain your reasoning."""
                 if assistant_message.tool_calls:
                     for tool_call in assistant_message.tool_calls:
                         tool_name = tool_call.function.name
-                        arguments = json.loads(tool_call.function.arguments)
+                        try:
+                            arguments = json.loads(tool_call.function.arguments)
+                        except json.JSONDecodeError as e:
+                            # Try to fix common JSON issues
+                            fixed_args = tool_call.function.arguments.replace('\\', '\\\\')
+                            try:
+                                arguments = json.loads(fixed_args)
+                            except:
+                                logger.error(f"Failed to parse tool arguments: {e}")
+                                arguments = {}
                         
                         logger.info(f"Tool call: {tool_name}({arguments})")
                         result = self._execute_tool(tool_name, arguments)
