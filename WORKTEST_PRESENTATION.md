@@ -6,6 +6,10 @@ This work test demonstrates a **capability-gradient sandbox breakout** - proving
 
 ---
 
+
+
+
+
 ## The Problem We're Addressing
 
 ### Traditional Sandbox Threat Model

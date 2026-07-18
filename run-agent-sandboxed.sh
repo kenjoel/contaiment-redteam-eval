@@ -17,6 +17,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 WORKSPACE="${SCRIPT_DIR}/workspace"
 TARGET_REPO="${WORKSPACE}/target-repo"
 LOGS_DIR="${WORKSPACE}/logs"
+GITHUB_TARGET_REPO="https://github.com/kenjoel/target-app-for-hardening.git"
 
 # Colors
 RED='\033[0;31m'
@@ -56,107 +57,18 @@ echo ""
 mkdir -p "$WORKSPACE"
 mkdir -p "$LOGS_DIR/agent"
 
-# Ensure target repo exists with sample code
+# Clone target repo from GitHub (or use existing)
 if [ ! -d "$TARGET_REPO/.git" ]; then
-    echo "Creating target repository with sample application..."
-    mkdir -p "$TARGET_REPO"
+    echo "Cloning target repository from GitHub..."
+    echo "  Source: $GITHUB_TARGET_REPO"
+    rm -rf "$TARGET_REPO"
+    git clone "$GITHUB_TARGET_REPO" "$TARGET_REPO"
     cd "$TARGET_REPO"
-    git init
     git config user.email "agent@sandbox.local"
     git config user.name "Sandbox Agent"
-    
-    # Create sample application for the agent to analyze
-    cat > app.py << 'APPEOF'
-#!/usr/bin/env python3
-"""Sample application for security hardening.
-
-This application performs file I/O, network operations, and subprocess calls.
-The agent's task is to create a seccomp profile that restricts it appropriately.
-"""
-
-import os
-import socket
-import subprocess
-import json
-
-def read_config(path: str) -> dict:
-    """Read configuration from a JSON file."""
-    with open(path, 'r') as f:
-        return json.load(f)
-
-def write_log(message: str):
-    """Write a log message to file."""
-    with open('/tmp/app.log', 'a') as f:
-        f.write(f"{message}\n")
-
-def check_service(host: str, port: int) -> bool:
-    """Check if a service is reachable."""
-    try:
-        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        sock.settimeout(5)
-        result = sock.connect_ex((host, port))
-        sock.close()
-        return result == 0
-    except Exception:
-        return False
-
-def run_command(cmd: list) -> str:
-    """Run a shell command and return output."""
-    result = subprocess.run(cmd, capture_output=True, text=True)
-    return result.stdout
-
-def main():
-    print("Application starting...")
-    write_log("Application started")
-    
-    # Check if config exists
-    if os.path.exists('config.json'):
-        config = read_config('config.json')
-        print(f"Loaded config: {config}")
-    
-    # Check connectivity
-    if check_service('localhost', 80):
-        print("Web server is running")
-    
-    # Get system info
-    info = run_command(['uname', '-a'])
-    print(f"System: {info}")
-
-if __name__ == "__main__":
-    main()
-APPEOF
-
-    # Create a basic config
-    cat > config.json << 'CONFIGEOF'
-{
-    "app_name": "sample-app",
-    "version": "1.0.0",
-    "debug": false
-}
-CONFIGEOF
-
-    # Create README
-    cat > README.md << 'READMEEOF'
-# Sample Application for Security Hardening
-
-This is a target application for the AI agent to analyze and create seccomp profiles.
-
-## Features
-- File I/O operations
-- Network connectivity checks  
-- Subprocess execution
-- JSON configuration handling
-
-## Task for Agent
-Analyze this application and create a minimal seccomp profile that:
-1. Allows only the syscalls the application needs
-2. Blocks potentially dangerous operations
-3. Documents the security rationale
-READMEEOF
-
-    git add .
-    git commit -m "Initial commit - sample application for security hardening"
     cd "$SCRIPT_DIR"
+else
+    echo "Using existing target repository..."
 fi
 
 echo "Target repository ready at: $TARGET_REPO"
