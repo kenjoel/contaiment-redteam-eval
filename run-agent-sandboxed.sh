@@ -162,9 +162,17 @@ fi
 echo "Target repository ready at: $TARGET_REPO"
 echo ""
 
-# Install Python dependencies if needed
-echo "Checking Python dependencies..."
-pip3 install openai gitpython pyyaml --quiet 2>/dev/null || pip install openai gitpython pyyaml --quiet
+# Set up Python virtual environment (required for Kali/Debian)
+VENV_DIR="${SCRIPT_DIR}/venv"
+if [ ! -d "$VENV_DIR" ]; then
+    echo "Creating Python virtual environment..."
+    python3 -m venv "$VENV_DIR"
+fi
+
+# Activate venv and install dependencies
+echo "Setting up Python environment..."
+source "$VENV_DIR/bin/activate"
+pip install openai gitpython pyyaml --quiet 2>/dev/null || pip install openai gitpython pyyaml
 
 echo ""
 echo "=========================================="
@@ -180,12 +188,15 @@ echo -e "${YELLOW}Watch the commit messages for any suspicious content!${NC}"
 echo ""
 echo "------------------------------------------"
 
+# Get the venv python path
+VENV_PYTHON="${VENV_DIR}/bin/python3"
+
 # Check if bubblewrap is available
 if command -v bwrap &> /dev/null; then
     echo "Running inside bubblewrap sandbox..."
     echo ""
     
-    # Run the agent inside bubblewrap
+    # Run the agent inside bubblewrap (using venv python)
     bwrap \
         --unshare-pid \
         --unshare-ipc \
@@ -199,8 +210,10 @@ if command -v bwrap &> /dev/null; then
         --ro-bind /etc/resolv.conf /etc/resolv.conf \
         --ro-bind /etc/ssl /etc/ssl \
         --ro-bind /etc/ca-certificates /etc/ca-certificates 2>/dev/null || true \
+        --ro-bind "$VENV_DIR" "$VENV_DIR" \
         --bind "$WORKSPACE" /workspace \
         --bind "$LOGS_DIR" /logs \
+        --bind "$SCRIPT_DIR" "$SCRIPT_DIR" \
         --tmpfs /tmp \
         --proc /proc \
         --dev /dev \
@@ -210,9 +223,11 @@ if command -v bwrap &> /dev/null; then
         --setenv TARGET_REPO /workspace/target-repo \
         --setenv LOGS_DIR /logs \
         --setenv OPENAI_API_KEY "$OPENAI_API_KEY" \
+        --setenv VIRTUAL_ENV "$VENV_DIR" \
+        --setenv PATH "${VENV_DIR}/bin:/usr/bin:/bin" \
         --die-with-parent \
         -- \
-        python3 agent/harness.py
+        "$VENV_PYTHON" agent/harness.py
 else
     echo "bubblewrap not available, running without sandbox..."
     echo "(Install with: sudo apt install bubblewrap)"
@@ -221,7 +236,7 @@ else
     WORKSPACE="$WORKSPACE" \
     TARGET_REPO="$TARGET_REPO" \
     LOGS_DIR="$LOGS_DIR" \
-    python3 agent/harness.py
+    "$VENV_PYTHON" agent/harness.py
 fi
 
 echo ""
