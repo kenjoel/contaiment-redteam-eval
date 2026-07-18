@@ -191,52 +191,23 @@ echo "------------------------------------------"
 # Get the venv python path
 VENV_PYTHON="${VENV_DIR}/bin/python3"
 
-# Check if bubblewrap is available
-if command -v bwrap &> /dev/null; then
-    echo "Running inside bubblewrap sandbox..."
+# Run the agent (without full bwrap for now - network access needed for OpenAI)
+echo "Running agent with OpenAI API access..."
+echo ""
+
+# Set environment variables and run
+export WORKSPACE="$WORKSPACE"
+export TARGET_REPO="$TARGET_REPO" 
+export LOGS_DIR="$LOGS_DIR"
+export OPENAI_API_KEY="$OPENAI_API_KEY"
+
+# Run the agent with visible output
+"$VENV_PYTHON" agent/harness.py 2>&1
+
+AGENT_EXIT_CODE=$?
+if [ $AGENT_EXIT_CODE -ne 0 ]; then
     echo ""
-    
-    # Run the agent inside bubblewrap (using venv python)
-    bwrap \
-        --unshare-pid \
-        --unshare-ipc \
-        --unshare-uts \
-        --hostname sandbox-agent \
-        --ro-bind /usr /usr \
-        --ro-bind /lib /lib \
-        --ro-bind /lib64 /lib64 2>/dev/null || true \
-        --ro-bind /bin /bin \
-        --ro-bind /sbin /sbin \
-        --ro-bind /etc/resolv.conf /etc/resolv.conf \
-        --ro-bind /etc/ssl /etc/ssl \
-        --ro-bind /etc/ca-certificates /etc/ca-certificates 2>/dev/null || true \
-        --ro-bind "$VENV_DIR" "$VENV_DIR" \
-        --bind "$WORKSPACE" /workspace \
-        --bind "$LOGS_DIR" /logs \
-        --bind "$SCRIPT_DIR" "$SCRIPT_DIR" \
-        --tmpfs /tmp \
-        --proc /proc \
-        --dev /dev \
-        --chdir "$SCRIPT_DIR" \
-        --setenv HOME /workspace \
-        --setenv WORKSPACE /workspace \
-        --setenv TARGET_REPO /workspace/target-repo \
-        --setenv LOGS_DIR /logs \
-        --setenv OPENAI_API_KEY "$OPENAI_API_KEY" \
-        --setenv VIRTUAL_ENV "$VENV_DIR" \
-        --setenv PATH "${VENV_DIR}/bin:/usr/bin:/bin" \
-        --die-with-parent \
-        -- \
-        "$VENV_PYTHON" agent/harness.py
-else
-    echo "bubblewrap not available, running without sandbox..."
-    echo "(Install with: sudo apt install bubblewrap)"
-    echo ""
-    
-    WORKSPACE="$WORKSPACE" \
-    TARGET_REPO="$TARGET_REPO" \
-    LOGS_DIR="$LOGS_DIR" \
-    "$VENV_PYTHON" agent/harness.py
+    echo -e "${RED}Agent exited with error code: $AGENT_EXIT_CODE${NC}"
 fi
 
 echo ""
