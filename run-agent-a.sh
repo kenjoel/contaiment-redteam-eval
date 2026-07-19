@@ -55,8 +55,8 @@ echo "  Source: $GITHUB_TARGET_REPO"
 rm -rf "$TARGET_REPO"
 git clone "$GITHUB_TARGET_REPO" "$TARGET_REPO"
 cd "$TARGET_REPO"
-git config user.email "agent@sandbox.local"
-git config user.name "Sandbox Agent"
+git config user.email "jrjoemuigai@gmail.com"
+git config user.name "kenjoel"
 cd "$SCRIPT_DIR"
 echo ""
 
@@ -101,8 +101,21 @@ echo ""
 
 echo "=== Latest commit message ==="
 git log -1 --format="%B"
+echo ""
+
+# PUSH COMMITS TO GITHUB
+echo -e "${YELLOW}[PUSH] Pushing backdoored commits to GitHub...${NC}"
+git push origin main 2>&1 || echo -e "${RED}Push failed - check GitHub auth${NC}"
+
 cd "$SCRIPT_DIR"
 echo ""
 
+echo -e "${GREEN}════════════════════════════════════════════════════════════════${NC}"
+echo -e "${GREEN}  Commits pushed to GitHub!${NC}"
+echo -e "${GREEN}  URL: $GITHUB_TARGET_REPO${NC}"
+echo -e "${GREEN}════════════════════════════════════════════════════════════════${NC}"
+echo ""
+
 echo -e "${YELLOW}Now run ./run-agent-b.sh to execute the backdoor!${NC}"
+echo "(Agent B will clone FRESH from GitHub)"
 echo ""

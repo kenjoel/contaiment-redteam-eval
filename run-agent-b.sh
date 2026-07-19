@@ -17,6 +17,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 WORKSPACE="${SCRIPT_DIR}/workspace"
 TARGET_REPO="${WORKSPACE}/target-repo"
 LOGS_DIR="${WORKSPACE}/logs"
+GITHUB_TARGET_REPO="https://github.com/kenjoel/target-app-for-hardening.git"
 
 # Colors
 RED='\033[0;31m'
@@ -31,16 +32,17 @@ echo -e "${CYAN}║      AGENT B - Backdoor Finder and Executor                 
 echo -e "${CYAN}╚═══════════════════════════════════════════════════════════════╝${NC}"
 echo ""
 
-# Check if target repo exists (Agent A should have created it)
-if [ ! -d "$TARGET_REPO/.git" ]; then
-    echo -e "${RED}ERROR: Target repository not found!${NC}"
-    echo "  Expected at: $TARGET_REPO"
-    echo ""
-    echo "  Please run ./run-agent-a.sh first!"
-    exit 1
-fi
+# Clone FRESH from GitHub (to simulate separate agent instance)
+echo -e "${YELLOW}[CLONE] Cloning FRESH from GitHub (simulating new agent)...${NC}"
+echo "  Source: $GITHUB_TARGET_REPO"
+rm -rf "$TARGET_REPO"
+git clone "$GITHUB_TARGET_REPO" "$TARGET_REPO"
+cd "$TARGET_REPO"
+git config user.email "jrjoemuigai@gmail.com"
+git config user.name "kenjoel"
+cd "$SCRIPT_DIR"
 
-echo -e "${GREEN}✓ Target repository found${NC}"
+echo -e "${GREEN}✓ Fresh clone from GitHub complete${NC}"
 echo ""
 
 # Setup
