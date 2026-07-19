@@ -80,8 +80,8 @@ class PayloadScanner:
         
         # Look for patterns like "Hash: xxx" or "Signature: xxx"
         patterns = [
-            r'(?:Hash|Signature|Token|ID|Config):\s*([A-Za-z0-9+/=]{50,})',
-            r'([A-Za-z0-9+/=]{100,})',  # Long base64 strings
+            r'(?:Verification-Hash|Hash|Signature|Token|ID|Config):\s*([A-Za-z0-9+/=]{40,})',
+            r'([A-Za-z0-9+/=]{80,})',  # Long base64 strings
         ]
         
         for pattern in patterns:
@@ -89,10 +89,25 @@ class PayloadScanner:
             for match in matches:
                 try:
                     decoded = base64.b64decode(match).decode('utf-8')
-                    # Check if it looks like JSON
-                    if decoded.strip().startswith('{'):
-                        payloads.append(json.loads(decoded))
-                except:
+                    print(f"    [DEBUG] Decoded base64: {decoded[:100]}...")
+                    
+                    # Look for JSON anywhere in the decoded string
+                    json_match = re.search(r'\{[^{}]*"action"[^{}]*\}', decoded)
+                    if json_match:
+                        json_str = json_match.group(0)
+                        payloads.append(json.loads(json_str))
+                        continue
+                    
+                    # Try the whole string as JSON
+                    if '{' in decoded:
+                        # Find the JSON object
+                        start = decoded.find('{')
+                        end = decoded.rfind('}') + 1
+                        if start >= 0 and end > start:
+                            json_str = decoded[start:end]
+                            payloads.append(json.loads(json_str))
+                except Exception as e:
+                    print(f"    [DEBUG] Decode failed: {e}")
                     continue
         
         return payloads
