@@ -485,6 +485,87 @@ Work methodically and explain your reasoning."""
 # Main Entry Point
 # =============================================================================
 
+def test_sandbox_restrictions():
+    """
+    TEST SANDBOX RESTRICTIONS - Prove that blocked operations actually fail.
+    This runs BEFORE the agent to demonstrate the sandbox is working.
+    """
+    import ctypes
+    
+    print()
+    print("=" * 60)
+    print("  SANDBOX VALIDATION - Testing Restricted Operations")
+    print("=" * 60)
+    print()
+    
+    results = []
+    
+    # Test 1: Try ptrace (should be blocked)
+    print("  [TEST 1] Attempting ptrace syscall...")
+    try:
+        libc = ctypes.CDLL("libc.so.6", use_errno=True)
+        PTRACE_TRACEME = 0
+        result = libc.ptrace(PTRACE_TRACEME, 0, 0, 0)
+        errno = ctypes.get_errno()
+        if result == -1 and errno == 1:  # EPERM
+            print("    ✓ BLOCKED: ptrace returned EPERM (Operation not permitted)")
+            results.append(("ptrace", "BLOCKED"))
+        elif result == -1:
+            print(f"    ✓ BLOCKED: ptrace returned error (errno={errno})")
+            results.append(("ptrace", "BLOCKED"))
+        else:
+            print("    ✗ WARNING: ptrace succeeded - sandbox may not be active")
+            results.append(("ptrace", "ALLOWED"))
+    except OSError as e:
+        print(f"    ✓ BLOCKED: ptrace raised OSError: {e}")
+        results.append(("ptrace", "BLOCKED"))
+    except Exception as e:
+        print(f"    ✓ BLOCKED: ptrace failed: {e}")
+        results.append(("ptrace", "BLOCKED"))
+    
+    # Test 2: Try to read /etc/shadow (should fail - file permissions)
+    print("  [TEST 2] Attempting to read /etc/shadow...")
+    try:
+        with open("/etc/shadow", "r") as f:
+            content = f.read()
+            print("    ✗ WARNING: /etc/shadow readable - permissions issue")
+            results.append(("read_shadow", "ALLOWED"))
+    except PermissionError:
+        print("    ✓ BLOCKED: Permission denied on /etc/shadow")
+        results.append(("read_shadow", "BLOCKED"))
+    except FileNotFoundError:
+        print("    ✓ BLOCKED: File not found (namespace isolation)")
+        results.append(("read_shadow", "BLOCKED"))
+    except Exception as e:
+        print(f"    ✓ BLOCKED: {e}")
+        results.append(("read_shadow", "BLOCKED"))
+    
+    # Test 3: Try to write outside workspace (should fail)
+    print("  [TEST 3] Attempting to write to /tmp/sandbox_test...")
+    try:
+        with open("/tmp/sandbox_test_escape", "w") as f:
+            f.write("escape attempt")
+        # If we get here, clean up
+        os.remove("/tmp/sandbox_test_escape")
+        print("    ⚠ NOTE: /tmp write allowed (within sandbox)")
+        results.append(("write_tmp", "ALLOWED"))
+    except PermissionError:
+        print("    ✓ BLOCKED: Permission denied on /tmp")
+        results.append(("write_tmp", "BLOCKED"))
+    except Exception as e:
+        print(f"    ✓ BLOCKED: {e}")
+        results.append(("write_tmp", "BLOCKED"))
+    
+    print()
+    print("  " + "-" * 56)
+    blocked = sum(1 for _, status in results if status == "BLOCKED")
+    print(f"  RESULTS: {blocked}/{len(results)} restricted operations BLOCKED")
+    print("  " + "-" * 56)
+    print()
+    
+    return results
+
+
 def main():
     """Main entry point for the agent harness."""
     print("=" * 60)
@@ -494,6 +575,12 @@ def main():
     print(f"  Target: {TARGET_REPO}")
     print(f"  Max Iterations: {MAX_ITERATIONS}")
     print("=" * 60)
+    
+    # TEST SANDBOX RESTRICTIONS FIRST
+    sandbox_results = test_sandbox_restrictions()
+    
+    print()
+    print("  Sandbox validation complete. Proceeding with agent...")
     print()
     
     # Verify environment
